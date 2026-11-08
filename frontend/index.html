@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#214e42">
+  <title>Taskwell — Your everyday, organized</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html"><span class="brand-icon">✓</span> taskwell<span class="brand-dot">.</span></a>
+      <div class="workspace-label">PERSONAL WORKSPACE</div>
+      <nav aria-label="Task views" class="view-nav">
+        <button class="nav-item active" data-view="all"><span>▦ &nbsp; All tasks</span><span id="nav-count">0</span></button>
+        <button class="nav-item" data-view="today"><span>◷ &nbsp; Today</span></button>
+        <button class="nav-item" data-view="upcoming"><span>▤ &nbsp; Upcoming</span></button>
+        <button class="nav-item" data-view="completed"><span>✓ &nbsp; Completed</span></button>
+      </nav>
+      <div class="sidebar-note"><span class="note-spark">✳</span><h2>A little progress,<br>every day.</h2><p>Make room for what matters.<br>One task at a time.</p></div>
+      <div class="storage-note"><span></span> Saved on this browser</div>
+    </aside>
+    <main>
+      <header class="topbar"><span>Your everyday, organized.</span><div class="profile"><span id="header-date"></span><span class="avatar">YOU</span></div></header>
+      <div class="main-content">
+        <section class="page-heading"><div><div class="eyebrow">LET’S MAKE THINGS HAPPEN</div><h1 id="view-title">All tasks<span>.</span></h1><p id="view-description">A clear mind starts with a little organization.</p></div><button class="btn btn-green" id="add-task">＋ &nbsp; New task</button></section>
+        <section class="stats-grid" aria-label="Task summary">
+          <article class="stat-card"><div><span>Total tasks</span><strong id="stat-total">0</strong></div><span class="stat-icon">▦</span></article>
+          <article class="stat-card"><div><span>In progress</span><strong id="stat-active">0</strong></div><span class="stat-icon amber">◷</span></article>
+          <article class="stat-card"><div><span>Completed</span><strong id="stat-done">0</strong></div><span class="stat-icon">✓</span></article>
+          <article class="stat-card progress-card"><div><span>Your progress</span><strong id="stat-progress">0<span>%</span></strong><div class="progress-track"><div id="progress-fill"></div></div></div><span class="stat-icon">↗</span></article>
+        </section>
+        <section class="task-panel" aria-label="Tasks">
+          <div class="panel-heading"><h2>Your task list <span id="list-count">0 tasks</span></h2><span class="small-note">Small steps. Big things.</span></div>
+          <div class="toolbar"><div class="filter-tabs" role="group" aria-label="Filter by status"><button class="active" data-status="all">All</button><button data-status="active">Active</button><button data-status="completed">Completed</button></div><div class="search-sort"><input id="search" type="search" class="form-control" placeholder="Search tasks…" aria-label="Search tasks"><select id="sort" class="form-select" aria-label="Sort tasks"><option value="newest">Newest first</option><option value="due">Due date</option><option value="priority">Priority</option></select></div></div>
+          <div class="list-labels"><span>TASK</span><span>PRIORITY</span><span>DUE DATE</span><span></span></div>
+          <div id="task-list"></div>
+          <div class="panel-footer"><span id="remaining-count">0 tasks left</span><button id="clear-completed">Clear completed</button></div>
+        </section>
+        <footer class="page-footer"><span>Less overwhelm. More getting things done.</span><span>Made for a more focused you <span class="footer-star">✳</span></span></footer>
+      </div>
+    </main>
+  </div>
+  <div class="modal fade" id="task-modal" tabindex="-1" aria-labelledby="modal-title" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form id="task-form"><div class="modal-header"><h2 class="modal-title fs-5" id="modal-title">New task</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><label class="form-label" for="task-title">Task title <span class="text-danger">*</span></label><input id="task-title" class="form-control mb-3" required maxlength="120" placeholder="What would you like to get done?"><label class="form-label" for="task-notes">Notes</label><textarea id="task-notes" class="form-control mb-3" maxlength="500" rows="3" placeholder="Add a little detail (optional)"></textarea><div class="row"><div class="col-sm-6 mb-3"><label class="form-label" for="task-priority">Priority</label><select id="task-priority" class="form-select"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div><div class="col-sm-6 mb-3"><label class="form-label" for="task-due">Due date</label><input id="task-due" class="form-control" type="date"></div></div></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-green" type="submit">Save task</button></div></form></div></div></div>
+  <div id="announcement" class="visually-hidden" role="status" aria-live="polite"></div>
+  <div id="storage-error" role="alert" hidden></div>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
