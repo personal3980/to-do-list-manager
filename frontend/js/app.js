@@ -1,8 +1,8 @@
-/* Standalone demo persistence. Replace read/write operations with API requests
-   when the FastAPI backend is implemented. No backend requests are made yet. */
-$(function () {
+/* Tasks remain browser-local. Authentication uses the API in session.js.
+   Replace task read/write operations when a task API is implemented. */
+window.taskwellSession.done(function (user) { $(function () {
   'use strict';
-  const STORAGE_KEY = 'taskwell.tasks.v1';
+  const STORAGE_KEY = `taskwell.tasks.user.${user.id}.v1`;
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const uid = () => window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const escape = value => $('<span>').text(value).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -80,4 +80,4 @@ $(function () {
   $('#search').on('input', render); $('#sort').on('change', render);
   $('#header-date').text(new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }));
   render();
-});
+}); });
