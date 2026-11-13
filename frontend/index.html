@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="auth-checking">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,7 @@
   <title>Taskwell — Your everyday, organized</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
+  <link href="css/auth.css" rel="stylesheet">
 </head>
 <body>
   <div class="app-shell">
@@ -23,7 +24,7 @@
       <div class="storage-note"><span></span> Saved on this browser</div>
     </aside>
     <main>
-      <header class="topbar"><span>Your everyday, organized.</span><div class="profile"><span id="header-date"></span><span class="avatar">YOU</span></div></header>
+      <header class="topbar"><span>Your everyday, organized.</span><div class="profile"><span id="header-date"></span><span class="account-name"></span><button id="logout" class="logout-button">Log out</button><span id="account-error" role="alert"></span></div></header>
       <div class="main-content">
         <section class="page-heading"><div><div class="eyebrow">LET’S MAKE THINGS HAPPEN</div><h1 id="view-title">All tasks<span>.</span></h1><p id="view-description">A clear mind starts with a little organization.</p></div><button class="btn btn-green" id="add-task">＋ &nbsp; New task</button></section>
         <section class="stats-grid" aria-label="Task summary">
@@ -48,6 +49,8 @@
   <div id="storage-error" role="alert" hidden></div>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js?v=2"></script>
+  <script src="js/session.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

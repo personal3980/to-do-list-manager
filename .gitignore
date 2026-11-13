@@ -16,3 +16,5 @@ Thumbs.db
 # Local output
 *.log
 node_modules/
+# Local password-reset email previews contain private, single-use links.
+backend/reset-emails/
