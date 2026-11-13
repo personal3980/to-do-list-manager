@@ -126,6 +126,34 @@ def test_expired_tokens_and_sessions(setup):
         'token': emails[0][1], 'password': 'NewPassword123', 'confirm_password': 'NewPassword123'}).status_code == 400
 
 
+@pytest.mark.parametrize('origin', [None, 'http://localhost:8000', config.FRONTEND_ORIGIN])
+def test_login_from_api_clients_and_trusted_browser_origins(setup, origin):
+    client, _, _ = setup
+    signup(client)
+    client.headers.pop('origin', None)
+    headers = {} if origin is None else {'Origin': origin}
+    response = client.post('/api/auth/login', headers=headers,
+                           json={'email': 'alex@example.com', 'password': 'Password123'})
+    assert response.status_code == 200
+    assert client.get('/api/auth/me').status_code == 200
+
+
+@pytest.mark.parametrize('headers', [
+    {'Origin': 'https://other.example'}, {'Origin': 'null'}, {'Origin': ''},
+    {'Sec-Fetch-Site': 'cross-site'},
+])
+def test_reject_untrusted_browser_requests(setup, headers):
+    client, _, _ = setup
+    client.headers.pop('origin', None)
+    assert client.post('/api/auth/login', json={}, headers=headers).status_code == 403
+
+
+def test_originless_clients_still_require_json(setup):
+    client, _, _ = setup
+    client.headers.pop('origin', None)
+    assert client.post('/api/auth/login', data={'email': 'alex@example.com'}).status_code == 415
+
+
 def test_origin_body_limits_and_throttling(setup):
     client, _, _ = setup
     assert client.post('/api/auth/logout', json={}, headers={'Origin': 'https://other.example'}).status_code == 403

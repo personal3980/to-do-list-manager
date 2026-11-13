@@ -28,9 +28,13 @@ app.add_middleware(CORSMiddleware, allow_origins=[config.FRONTEND_ORIGIN],
 @app.middleware('http')
 async def protect_requests(request: Request, call_next):
     if request.method == 'POST':
-        # Exact origin validation protects cookie-authenticated mutations from CSRF.
-        # Browser UI always sends Origin; CLI clients must supply it explicitly.
-        if request.headers.get('origin') != config.FRONTEND_ORIGIN:
+        # Allow the configured frontend and same-origin API docs. Native API
+        # clients may omit Origin; JSON-only input and restricted CORS prevent
+        # an untrusted browser page from using that path for a form submission.
+        origin = request.headers.get('origin')
+        api_origin = f'{request.url.scheme}://{request.url.netloc}'
+        if ((origin is not None and origin not in {config.FRONTEND_ORIGIN, api_origin})
+                or (origin is None and request.headers.get('sec-fetch-site') == 'cross-site')):
             return JSONResponse({'detail': 'Untrusted request origin.'}, status_code=403)
         if request.headers.get('content-type', '').split(';')[0].strip() != 'application/json':
             return JSONResponse({'detail': 'Send an application/json request.'}, status_code=415)

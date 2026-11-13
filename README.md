@@ -89,7 +89,7 @@ python -m uvicorn app.main:app --reload --host 127.0.0.1
 
 API documentation: [http://localhost:8000/docs](http://localhost:8000/docs).
 
-POST requests require `Origin: http://localhost:5500` and `Content-Type: application/json`. Use the frontend for interactive testing; Swagger's built-in POST requests originate on port 8000 and will be rejected by the exact-origin protection. CLI/API clients must explicitly set the configured frontend Origin header.
+POST requests require `Content-Type: application/json`. Browser requests must originate from the configured `FRONTEND_ORIGIN` or the API itself (so Swagger at `/docs` works). Native CLI/API clients such as curl and Postman may omit `Origin`. Explicit untrusted origins, `Origin: null`, and originless requests marked cross-site by the browser are rejected.
 
 ### 4. Start the frontend
 
