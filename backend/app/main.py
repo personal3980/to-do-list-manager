@@ -5,11 +5,13 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
 from . import config
 from .database import Base, engine
 from .routes.auth import router
+from .routes.tasks import router as tasks_router
 
 
 @asynccontextmanager
@@ -21,13 +23,13 @@ async def lifespan(app):
 
 app = FastAPI(title='Taskwell Authentication API', lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=[config.FRONTEND_ORIGIN],
-                   allow_credentials=True, allow_methods=['GET', 'POST'],
+                   allow_credentials=True, allow_methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
                    allow_headers=['Content-Type'])
 
 
 @app.middleware('http')
 async def protect_requests(request: Request, call_next):
-    if request.method == 'POST':
+    if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
         # Allow the configured frontend and same-origin API docs. Native API
         # clients may omit Origin; JSON-only input and restricted CORS prevent
         # an untrusted browser page from using that path for a form submission.
@@ -36,7 +38,7 @@ async def protect_requests(request: Request, call_next):
         if ((origin is not None and origin not in {config.FRONTEND_ORIGIN, api_origin})
                 or (origin is None and request.headers.get('sec-fetch-site') == 'cross-site')):
             return JSONResponse({'detail': 'Untrusted request origin.'}, status_code=403)
-        if request.headers.get('content-type', '').split(';')[0].strip() != 'application/json':
+        if request.method != 'DELETE' and request.headers.get('content-type', '').split(';')[0].strip() != 'application/json':
             return JSONResponse({'detail': 'Send an application/json request.'}, status_code=415)
         # Bound JSON input before validation/password hashing.
         body = bytearray()
@@ -65,3 +67,10 @@ async def database_error(request, exc):
 
 
 app.include_router(router)
+
+app.include_router(tasks_router)
+
+# Serve only public frontend assets, never backend configuration or reset emails.
+frontend_dir = config.BACKEND_DIR.parent / 'frontend'
+if frontend_dir.is_dir():
+    app.mount('/', StaticFiles(directory=frontend_dir, html=True), name='frontend')
