@@ -15,6 +15,7 @@ $(function () {
       $('#auth-form :input').prop('disabled', true);
     }
   }
+  if (mode === 'login' && new URLSearchParams(location.search).has('expired')) message('Your session has expired. Please log in again.', true);
   if (mode === 'login' && new URLSearchParams(location.search).has('registered')) {
     message('Account created. You can now log in.');
   }

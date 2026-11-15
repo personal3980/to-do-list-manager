@@ -2,7 +2,7 @@
 
 A responsive task dashboard with a simple FastAPI/MySQL authentication system. The frontend uses HTML, CSS, JavaScript, jQuery, and Bootstrap.
 
-**Implemented:** signup, login, logout, current-user lookup, forgot password, and password reset. Authentication persists in MySQL. **Tasks still use browser localStorage**, scoped by user ID; there is no task API or database task table yet. Authentication protects API sessions; browser task data is not encrypted or suitable for sensitive information on shared devices.
+**Implemented:** signup, login, logout, password recovery, and a complete account-owned task workflow backed by MySQL. Tasks persist across browsers and devices connected to the same backend. Search, status filters, date views, sorting, and progress summaries work on the saved task list.
 
 ## Features
 
@@ -11,8 +11,11 @@ A responsive task dashboard with a simple FastAPI/MySQL authentication system. T
 - Reset links expire after 30 minutes, can be used once, and revoke all sessions and reset links for that user after a successful password change.
 - Frontend and server-side validation; passwords require 8-128 characters with at least one ASCII letter and number. Passwords are never trimmed.
 - Argon2 password hashing; only SHA-256 hashes of random session and reset tokens are stored in MySQL.
-- Exact-origin checks on POST requests, restricted CORS, JSON-only requests, request-size limits, and simple per-IP rate limits.
-- Dashboard with task creation, editing, completion, deletion, notes, priorities, due dates, search, filters, and sorting.
+- Origin checks on all task and account mutations, restricted CORS, JSON-only requests, request-size limits, and simple per-IP rate limits.
+- Dashboard with task creation, editing, completion/reopening, deletion, bulk completed-task clearing, notes, priorities, due dates, search, filters, and sorting.
+- Today, overdue, upcoming, and completed views; live totals and progress.
+- Refresh and automatic reload when returning to the tab; clear loading/error states and expired-session handling.
+- Retry-safe import of old browser tasks and JSON export of saved tasks. Imports keep the original browser data unchanged.
 
 ## Local requirements and ports
 
@@ -22,7 +25,7 @@ A responsive task dashboard with a simple FastAPI/MySQL authentication system. T
 - FastAPI: **http://localhost:8000** (Uvicorn default).
 - MySQL: **127.0.0.1:3306** (default database port).
 
-Use `localhost` for both browser URLs. Mixing `localhost` and `127.0.0.1` can break cookies and origin checks. The database host can still be `127.0.0.1`.
+The frontend calls the API on the same hostname on port 8000, so both `localhost` and `127.0.0.1` work. For a separate frontend on port 5500, match `FRONTEND_ORIGIN` to its exact URL. The database host is configured independently.
 
 ## Setup
 
@@ -89,9 +92,15 @@ python -m uvicorn app.main:app --reload --host 127.0.0.1
 
 API documentation: [http://localhost:8000/docs](http://localhost:8000/docs).
 
-POST requests require `Content-Type: application/json`. Browser requests must originate from the configured `FRONTEND_ORIGIN` or the API itself (so Swagger at `/docs` works). Native CLI/API clients such as curl and Postman may omit `Origin`. Explicit untrusted origins, `Origin: null`, and originless requests marked cross-site by the browser are rejected.
+POST, PUT, and PATCH requests require `Content-Type: application/json`. Browser requests must originate from the configured `FRONTEND_ORIGIN` or the API itself (so Swagger at `/docs` works). Native CLI/API clients such as curl and Postman may omit `Origin`. Explicit untrusted origins, `Origin: null`, and originless requests marked cross-site by the browser are rejected.
 
-### 4. Start the frontend
+### 4. Open the app (single server recommended)
+
+Open [http://127.0.0.1:8000/login.html](http://127.0.0.1:8000/login.html). FastAPI serves the public frontend folder alongside the API, so no second server is required. Set `FRONTEND_ORIGIN=http://127.0.0.1:8000` in `backend/.env` and restart the backend if password-reset links should also point to this single-server address. The frontend and Swagger can make same-origin requests without additional CORS configuration.
+
+Startup automatically adds the new `tasks` table. Existing user, session, and password-reset tables and records are preserved.
+
+### Optional: serve the frontend separately
 
 Open a second terminal in the project root:
 
@@ -113,7 +122,7 @@ Serve **only the frontend folder**, never the repository root or backend folder:
 5. To recover access, choose **Forgot password?**, enter your email, and follow the reset link.
 6. Enter and confirm a new password, then log in again. Previous sessions and other reset links stop working.
 
-Task lists are scoped to the user's database ID in localStorage, remain after logout, and do not synchronize between browsers/devices. Old anonymous demo tasks are not automatically imported. A dashboard already open in another tab is not immediately hidden on logout/reset; its server-side session is nevertheless revoked. Reloading performs a fresh session check.
+Tasks are saved in MySQL and scoped to the authenticated account. **Import browser tasks** copies tasks saved by the previous version for the current user's ID on the current browser origin. Repeating an import does not duplicate tasks; original browser data is retained. Old anonymous tasks are not imported. Use **Refresh** to fetch changes made elsewhere; returning to a visible tab also refreshes when no task editor is open. Session expiry redirects to login on the next API request. **Export tasks** downloads a JSON snapshot. Deleting a task or clearing completed tasks is permanent and requires confirmation in the dashboard.
 
 ## Password reset delivery
 
@@ -148,6 +157,7 @@ Before public deployment, use HTTPS, set `COOKIE_SECURE=true`, configure real SM
 | --- | --- |
 | `users` | Integer primary key, name, unique normalized email, Argon2 password hash, UTC creation time. |
 | `auth_sessions` | Hashed token primary key, user foreign key, indexed UTC expiry. Sessions expire after 24 hours. |
+| `tasks` | UUID primary key, account owner, title, notes, priority, optional due date, completion, UTC creation time, and optional browser import ID (unique per account). |
 | `password_reset_tokens` | Hashed token primary key, user foreign key, indexed UTC expiry. Reset links expire after 30 minutes. |
 
 Foreign keys cascade on user deletion. Password reset deletes all that user's sessions and reset tokens in the same transaction. Reset processing locks the user row to serialize concurrent reset attempts on MySQL. Expired rows are rejected during authentication/reset and are cleaned during subsequent login/reset-link requests.
@@ -167,6 +177,22 @@ All endpoints are under `/api/auth`. Send cookies with requests (`xhrFields: { w
 
 Invalid fields return 422 with an `errors` array; invalid credentials/session return 401; invalid/expired reset links return 400; duplicate signup returns 409. Throttled requests return 429. Limits per client IP per 15 minutes: signup 10, login 20, reset-link requests 5, password resets 10. These counters reset when the server restarts.
 
+### Task API
+
+All task endpoints require a valid session cookie. Responses never include another account's tasks. An unknown task or a task owned by another account returns 404.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/tasks` | List your tasks, newest first. |
+| POST | `/api/tasks` | Create a task (201). |
+| PUT | `/api/tasks/{id}` | Replace editable task fields. |
+| PATCH | `/api/tasks/{id}` | Update `completed` only. |
+| DELETE | `/api/tasks/{id}` | Delete a task (204). |
+| DELETE | `/api/tasks/completed` | Delete your completed tasks (204). |
+| POST | `/api/tasks/import` | Import one old browser task with a stable `legacy_id`; repeating it returns the existing task. |
+
+Create/update fields: `title` (trimmed, 1–120 characters), `notes` (up to 500), `priority` (`low`, `medium`, `high`), `due` (ISO calendar date from year 1000, or null), and `completed` (boolean). Defaults are empty notes, medium priority, no due date, and active. Unknown fields are rejected. Creation timestamps are returned as UTC ISO strings with `Z`. Calendar dates use the browser's local date in dashboard views.
+
 ## Project structure
 
 ```text
@@ -184,7 +210,7 @@ to-do-list-manager/
 |       |-- config.js              # Local API URL
 |       |-- auth.js                # Account forms and frontend validation
 |       |-- session.js             # Current-user check and logout
-|       `-- app.js                 # Browser-based task operations
+|       `-- app.js                 # API-backed task operations
 |-- backend/
 |   |-- .env.example
 |   |-- requirements.txt
@@ -202,7 +228,7 @@ to-do-list-manager/
 |   |   `-- routes/
 |   |       |-- __init__.py
 |   |       |-- auth.py
-|   |       `-- tasks.py            # Reserved, still empty
+|   |       `-- tasks.py            # Account-owned task API
 |   `-- tests/
 |       `-- test_auth.py
 |-- .gitattributes
@@ -220,7 +246,7 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Tests use an isolated in-memory SQLite database and capture email delivery; they do not read/write real users, start production MySQL startup hooks, or send email. They cover validation without the frontend, password hashing, login/logout, expired sessions and reset links, single-use reset, session revocation, generic recovery messages, delivery failure, origin checks, size limits, and throttling. MySQL-specific locking should also be checked when modifying reset transactions.
+Tests use an isolated in-memory SQLite database and capture email delivery; they do not read/write real users, start production MySQL startup hooks, or send email. They cover task CRUD, account isolation, persistence across login, import retries, mutation origins, private-file isolation, validation without the frontend, password hashing, login/logout, expired sessions and reset links, single-use reset, session revocation, generic recovery messages, delivery failure, origin checks, size limits, and throttling. MySQL-specific locking should also be checked when modifying reset transactions.
 
 ## Troubleshooting
 
@@ -233,7 +259,7 @@ Tests use an isolated in-memory SQLite database and capture email delivery; they
 | Expired/invalid reset link | Request a new link; previously used links and links older than 30 minutes will fail. |
 | Too many attempts | Wait 15 minutes; development limits are per IP. |
 | Styles or buttons fail to load | Check CDN access and the browser console. |
-| Tasks disappear | Use the same account, browser profile, hostname, and port; browser data may have been cleared. |
+| Old browser tasks missing | Sign in on the same browser origin used by the previous version, then choose Import browser tasks. New tasks are stored in MySQL. |
 
 ## License
 

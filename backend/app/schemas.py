@@ -1,5 +1,8 @@
 """Server-side validation is independent of browser validation."""
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from datetime import date, datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer, field_validator, model_validator
 
 
 class EmailInput(BaseModel):
@@ -51,3 +54,39 @@ class UserOutput(BaseModel):
     id: int
     name: str
     email: str
+
+
+# Tasks use calendar dates; timestamps are serialized explicitly as UTC below.
+
+
+class TaskInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    title: str = Field(min_length=1, max_length=120)
+    notes: str = Field(default='', max_length=500)
+    priority: Literal['low', 'medium', 'high'] = 'medium'
+    due: date | None = Field(default=None, ge=date(1000, 1, 1))
+    completed: bool = Field(default=False, strict=True)
+
+    @field_validator('title', mode='before')
+    @classmethod
+    def trim_title(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class TaskImport(TaskInput):
+    legacy_id: str = Field(min_length=1, max_length=100)
+
+
+class TaskStatus(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    completed: bool = Field(strict=True)
+
+
+class TaskOutput(TaskInput):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    created_at: datetime
+
+    @field_serializer('created_at')
+    def utc_timestamp(self, value):
+        return value.isoformat() + 'Z'
