@@ -1,184 +1,239 @@
-# Taskwell · To-do List Manager
+# Taskwell - To-do List Manager
 
-A clean, responsive task manager built with HTML, CSS, JavaScript, jQuery, and Bootstrap. A minimal FastAPI folder structure is included for building a Python backend with MySQL.
+A responsive task dashboard with a simple FastAPI/MySQL authentication system. The frontend uses HTML, CSS, JavaScript, jQuery, and Bootstrap.
 
-**Current status:** the frontend is functional and saves tasks in your browser’s `localStorage`. The Python files are deliberately empty. There is no running API, MySQL connection, authentication, or frontend/API integration yet. You can use the frontend without setting up the backend.
+**Implemented:** signup, login, logout, current-user lookup, forgot password, and password reset. Authentication persists in MySQL. **Tasks still use browser localStorage**, scoped by user ID; there is no task API or database task table yet. Authentication protects API sessions; browser task data is not encrypted or suitable for sensitive information on shared devices.
 
 ## Features
 
-- Create, edit, complete, reopen, and delete tasks.
-- Add notes, a priority (low, medium, high), and an optional due date.
-- Browse all tasks, today’s tasks, upcoming tasks, and completed tasks.
-- Search titles and notes; filter by status; sort by creation date, due date, or priority.
-- See task totals, completion progress, and overdue dates.
-- Clear completed tasks after confirmation.
-- Responsive layout for desktop and mobile; labeled controls and keyboard-accessible forms.
+- Signup with name, email, password, and password confirmation.
+- Login with an expiring, HttpOnly session cookie; logout revokes the session in MySQL.
+- Reset links expire after 30 minutes, can be used once, and revoke all sessions and reset links for that user after a successful password change.
+- Frontend and server-side validation; passwords require 8-128 characters with at least one ASCII letter and number. Passwords are never trimmed.
+- Argon2 password hashing; only SHA-256 hashes of random session and reset tokens are stored in MySQL.
+- Exact-origin checks on POST requests, restricted CORS, JSON-only requests, request-size limits, and simple per-IP rate limits.
+- Dashboard with task creation, editing, completion, deletion, notes, priorities, due dates, search, filters, and sorting.
 
-Three example tasks appear on first use. Delete or edit them to get started. Once saved, even an empty task list stays empty after a refresh.
+## Local requirements and ports
 
-## Technology and local ports
+- Python 3.10+ and MySQL Server (8.0+ recommended).
+- A modern browser and internet access for the Bootstrap/jQuery/Google Fonts CDNs.
+- Frontend: **http://localhost:5500** (explicit local static-server port).
+- FastAPI: **http://localhost:8000** (Uvicorn default).
+- MySQL: **127.0.0.1:3306** (default database port).
 
-| Component | Technology | Local address |
-| --- | --- | --- |
-| Frontend | HTML, CSS, JavaScript, jQuery 3.7.1, Bootstrap 5.3.3 | `http://localhost:5500` |
-| Backend (to implement) | Python / FastAPI / Uvicorn | `http://localhost:8000` |
-| Database (to configure) | MySQL | `127.0.0.1:3306` |
+Use `localhost` for both browser URLs. Mixing `localhost` and `127.0.0.1` can break cookies and origin checks. The database host can still be `127.0.0.1`.
 
-Uvicorn uses port **8000** by default and MySQL typically uses **3306**. The frontend instructions explicitly choose **5500**, a common local development port; Python’s HTTP server otherwise defaults to 8000 and would conflict with the API. No production hosting configuration is included.
+## Setup
 
-## Project structure
+Clone this repository and open a terminal in the project root.
 
-```text
-to-do-list-manager/
-├── frontend/
-│   ├── index.html           # Dashboard and task form
-│   ├── css/
-│   │   └── style.css        # Responsive styles
-│   └── js/
-│       └── app.js           # jQuery interactions and localStorage
-├── backend/
-│   ├── .env.example         # Example local configuration (no real secrets)
-│   ├── requirements.txt     # Suggested backend dependencies
-│   └── app/
-│       ├── __init__.py      # Empty package marker
-│       ├── main.py          # TODO: FastAPI app, CORS, router registration
-│       ├── database.py      # TODO: Environment loading, engine, sessions
-│       ├── models.py        # TODO: SQLAlchemy task model
-│       ├── schemas.py       # TODO: Pydantic request/response models
-│       └── routes/
-│           ├── __init__.py  # Empty package marker
-│           └── tasks.py     # TODO: Task API endpoints
-├── .gitignore
-├── LICENSE
-└── README.md
-```
+### 1. Prepare the backend
 
-All `.py` files are empty scaffolding for you to implement; the comments above describe their intended responsibilities.
-
-## Run the frontend
-
-### Prerequisites
-
-- Python 3.10 or newer (for the local static server and future backend).
-- A modern browser.
-- An internet connection to load Bootstrap, jQuery, and Google Fonts from their CDNs. For offline use, download those assets and update the references in `index.html` and `style.css`.
-
-Clone your GitHub repository and open its project directory. Then run:
-
-```powershell
-cd frontend
-python -m http.server 5500 --bind 127.0.0.1
-```
-
-Open **[http://localhost:5500](http://localhost:5500)**. Keep the terminal open while using the app. Press `Ctrl+C` to stop the server. On Windows, use `py` instead of `python` if needed; on macOS/Linux, use `python3`.
-
-You can also use VS Code Live Server with its port set to 5500. Keep the same hostname and port when reopening the app: browser storage belongs to each origin, so `localhost` and `127.0.0.1` have separate saved lists.
-
-### Usage
-
-1. Click **New task**, enter a title, optionally add notes, priority, and a due date, then choose **Save task**.
-2. Check a task to complete it; uncheck it to reopen it.
-3. Use the pencil to edit or the × button to delete a task.
-4. Use the sidebar views, search, status tabs, and sorting to organize your list. **Today** includes tasks due today; **Upcoming** shows unfinished tasks due after today. Filters combine with the selected view.
-5. Use **Clear completed** to delete all completed tasks, including ones hidden by a filter. Summary cards always describe the entire list; the list count describes the filtered results.
-
-Tasks stay in the current browser profile after refresh. They are not stored in MySQL or synchronized across browsers/devices. Clearing site data removes them; private browsing may discard them when closed. A visible warning appears if browser storage cannot load or save data.
-
-## Prepare the backend (optional, implementation required)
-
-The steps below prepare your environment. They do not create a working API from the empty scaffold.
-
-### 1. Create a Python environment
-
-From the project root, on Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+# Only if .env does not already exist:
 Copy-Item .env.example .env
 ```
 
-If PowerShell prevents activation, use the virtual environment’s Python directly, without changing execution policy:
+Keep an existing `.env`; do not replace your own credentials with the example. If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead of `python` for each backend command.
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-On macOS/Linux:
+macOS/Linux:
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+# Only if .env does not already exist:
 cp .env.example .env
 ```
 
-Dependency ranges are a starting point, not a locked environment. Pin versions after implementing and testing the backend.
+### 2. Configure MySQL
 
-### 2. Prepare MySQL
-
-Install MySQL Server and start its local service on port 3306. Connect with an administrator account:
-
-```bash
-mysql -u root -p
-```
-
-Create a development database and a dedicated local user. Replace the example password before running this SQL:
+Start MySQL and create a database if needed. For example, connect using `mysql -u root -p`, then run the following with your own password:
 
 ```sql
 CREATE DATABASE todo_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'todo_user'@'127.0.0.1' IDENTIFIED BY 'replace_with_your_local_password';
+CREATE USER 'todo_user'@'127.0.0.1' IDENTIFIED BY 'replace_with_your_password';
 GRANT ALL PRIVILEGES ON todo_manager.* TO 'todo_user'@'127.0.0.1';
 ```
 
-Edit `backend/.env` to match your database, user, and password. `.env` is ignored by Git; never commit credentials. These variables do nothing until your implementation reads them (for example, with `python-dotenv`). Use SQLAlchemy’s URL builder to handle passwords containing special characters.
+Edit `backend/.env` to match your existing database credentials:
 
-### 3. Implement the empty Python files
+```dotenv
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=todo_manager
+DB_USER=todo_user
+DB_PASSWORD=replace_with_your_password
+FRONTEND_ORIGIN=http://localhost:5500
+COOKIE_SECURE=false
+RESET_DELIVERY=local
+```
 
-- `database.py`: load configuration, connect to MySQL with SQLAlchemy/PyMySQL, and provide database sessions.
-- `models.py`: define a task table, including an ID, title, notes, priority, optional due date, completed flag, and creation timestamp.
-- `schemas.py`: define request and response validation, including a required trimmed title and allowed priorities.
-- `routes/tasks.py`: implement task creation, listing, updates, and deletion with database persistence and appropriate error responses.
-- `main.py`: create the FastAPI instance named `app`, register the task router, configure CORS for `http://localhost:5500`, and implement your table-creation or migration strategy.
+The backend reads `.env` relative to its own folder. Credentials never go into frontend files, and `.env` is ignored by Git. The database must already exist; missing tables are created automatically on API startup. Existing tables are not altered or dropped. If you change models later, use a migration rather than expecting startup to modify an existing table.
 
-An optional starting API contract (not implemented):
+### 3. Start FastAPI
 
-| Method | Route | Purpose |
-| --- | --- | --- |
-| GET | `/api/tasks` | List tasks |
-| POST | `/api/tasks` | Create a task |
-| PATCH | `/api/tasks/{id}` | Edit fields or completion status |
-| DELETE | `/api/tasks/{id}` | Delete a task |
-
-### 4. Start the API after implementing it
-
-From `backend/`, with the virtual environment active:
+In the backend terminal, with its virtual environment active:
 
 ```bash
 python -m uvicorn app.main:app --reload --host 127.0.0.1
 ```
 
-The API will use **[http://localhost:8000](http://localhost:8000)** and generated API documentation will be available at **[http://localhost:8000/docs](http://localhost:8000/docs)**. This command will fail with an app-not-found error until you create the FastAPI `app` in `app/main.py`.
+API documentation: [http://localhost:8000/docs](http://localhost:8000/docs).
 
-### 5. Connect the frontend
+POST requests require `Content-Type: application/json`. Browser requests must originate from the configured `FRONTEND_ORIGIN` or the API itself (so Swagger at `/docs` works). Native CLI/API clients such as curl and Postman may omit `Origin`. Explicit untrusted origins, `Origin: null`, and originless requests marked cross-site by the browser are rejected.
 
-Replace the localStorage read/write logic in `frontend/js/app.js` with jQuery AJAX requests to `http://localhost:8000/api/tasks`. Handle loading states, validation errors, and failed requests. Agree on the ID and timestamp formats returned by the API; the demo currently uses string IDs and numeric creation timestamps. Do not put database credentials in frontend code. Existing demo tasks will not move to MySQL automatically.
+### 4. Start the frontend
 
-Run the frontend server and API in separate terminals, with MySQL running in the background. Because ports 5500 and 8000 are different origins, configure the backend’s CORS middleware for the exact frontend origin you use.
+Open a second terminal in the project root:
+
+```powershell
+cd frontend
+python -m http.server 5500 --bind 127.0.0.1
+```
+
+Open [http://localhost:5500/login.html](http://localhost:5500/login.html). Use `python3` on macOS/Linux or `py` on Windows if necessary. Keep both terminals and MySQL running; press `Ctrl+C` to stop a server.
+
+Serve **only the frontend folder**, never the repository root or backend folder: backend configuration and local reset-email previews are private.
+
+## Account usage
+
+1. Choose **Create an account**, enter a name and email, and confirm your password.
+2. Log in with that email and password. Signup does not automatically log you in.
+3. Use the dashboard; the header shows your name and a **Log out** button.
+4. A session lasts 24 hours. Expired sessions cannot authenticate API requests; refresh the dashboard to check its session again.
+5. To recover access, choose **Forgot password?**, enter your email, and follow the reset link.
+6. Enter and confirm a new password, then log in again. Previous sessions and other reset links stop working.
+
+Task lists are scoped to the user's database ID in localStorage, remain after logout, and do not synchronize between browsers/devices. Old anonymous demo tasks are not automatically imported. A dashboard already open in another tab is not immediately hidden on logout/reset; its server-side session is nevertheless revoked. Reloading performs a fresh session check.
+
+## Password reset delivery
+
+### Local development (works without SMTP)
+
+`RESET_DELIVERY=local` is the default when the setting is absent. For a registered email, the backend saves a private `.eml` email preview under `backend/reset-emails/`. Open the newest file in an email client or text editor, copy its full reset URL, and open it in your browser. This is a development mailbox on disk; **no email is sent**. Unknown emails produce the same API message and no preview file.
+
+The reset token lives in the URL fragment to keep it out of static-server request logs. The reset page removes it from the address bar after reading it. If you reload that page, reopen the original email link or request another one. Reset links are not returned in API responses. The preview folder is ignored by Git; delete old previews when no longer needed.
+
+### Real email with SMTP
+
+Set the following in `backend/.env`, then restart the backend:
+
+```dotenv
+RESET_DELIVERY=smtp
+SMTP_HOST=smtp.your-provider.example
+SMTP_PORT=587
+SMTP_USER=your_smtp_username
+SMTP_PASSWORD=your_smtp_password
+SMTP_FROM=you@your-domain.example
+```
+
+This implementation uses authenticated SMTP with STARTTLS (commonly port 587). Use credentials/app passwords required by your provider. If delivery fails, the API retains its generic response and logs a configuration warning without disclosing account existence or credentials.
+
+Before public deployment, use HTTPS, set `COOKIE_SECURE=true`, configure real SMTP and the exact frontend origin, and replace the in-memory rate limiter with shared storage if using multiple workers. The current defaults are intended for one local development process. There is no email-ownership verification or MFA in this version.
+
+## Database schema
+
+[backend/schema.sql](backend/schema.sql) documents the MySQL DDL and can be imported manually into the database selected by `DB_NAME`. Normally startup creates these tables for you.
+
+| Table | Columns and purpose |
+| --- | --- |
+| `users` | Integer primary key, name, unique normalized email, Argon2 password hash, UTC creation time. |
+| `auth_sessions` | Hashed token primary key, user foreign key, indexed UTC expiry. Sessions expire after 24 hours. |
+| `password_reset_tokens` | Hashed token primary key, user foreign key, indexed UTC expiry. Reset links expire after 30 minutes. |
+
+Foreign keys cascade on user deletion. Password reset deletes all that user's sessions and reset tokens in the same transaction. Reset processing locks the user row to serialize concurrent reset attempts on MySQL. Expired rows are rejected during authentication/reset and are cleaned during subsequent login/reset-link requests.
+
+## API reference
+
+All endpoints are under `/api/auth`. Send cookies with requests (`xhrFields: { withCredentials: true }` in jQuery). Authentication tokens are not stored in browser localStorage.
+
+| Method | Endpoint | JSON body / result |
+| --- | --- | --- |
+| POST | `/signup` | `name`, `email`, `password`, `confirm_password`; returns public user fields (201). |
+| POST | `/login` | `email`, `password`; sets session cookie and returns public user fields. |
+| GET | `/me` | Returns `id`, `name`, `email`; 401 without a valid session. |
+| POST | `/logout` | `{}`; revokes current session and clears cookie. |
+| POST | `/forgot-password` | `email`; always returns a generic delivery message for valid input. |
+| POST | `/reset-password` | `token`, `password`, `confirm_password`; changes password and revokes sessions. |
+
+Invalid fields return 422 with an `errors` array; invalid credentials/session return 401; invalid/expired reset links return 400; duplicate signup returns 409. Throttled requests return 429. Limits per client IP per 15 minutes: signup 10, login 20, reset-link requests 5, password resets 10. These counters reset when the server restarts.
+
+## Project structure
+
+```text
+to-do-list-manager/
+|-- frontend/
+|   |-- index.html                 # Task dashboard (session check)
+|   |-- login.html
+|   |-- signup.html
+|   |-- forgot-password.html
+|   |-- reset-password.html
+|   |-- css/
+|   |   |-- style.css
+|   |   `-- auth.css
+|   `-- js/
+|       |-- config.js              # Local API URL
+|       |-- auth.js                # Account forms and frontend validation
+|       |-- session.js             # Current-user check and logout
+|       `-- app.js                 # Browser-based task operations
+|-- backend/
+|   |-- .env.example
+|   |-- requirements.txt
+|   |-- requirements-dev.txt
+|   |-- schema.sql
+|   |-- app/
+|   |   |-- __init__.py
+|   |   |-- config.py
+|   |   |-- database.py
+|   |   |-- main.py
+|   |   |-- models.py
+|   |   |-- schemas.py
+|   |   |-- security.py
+|   |   |-- mail.py
+|   |   `-- routes/
+|   |       |-- __init__.py
+|   |       |-- auth.py
+|   |       `-- tasks.py            # Reserved, still empty
+|   `-- tests/
+|       `-- test_auth.py
+|-- .gitattributes
+|-- .gitignore
+|-- LICENSE
+`-- README.md
+```
+
+## Tests
+
+From `backend/`, using the virtual environment:
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+Tests use an isolated in-memory SQLite database and capture email delivery; they do not read/write real users, start production MySQL startup hooks, or send email. They cover validation without the frontend, password hashing, login/logout, expired sessions and reset links, single-use reset, session revocation, generic recovery messages, delivery failure, origin checks, size limits, and throttling. MySQL-specific locking should also be checked when modifying reset transactions.
 
 ## Troubleshooting
 
-| Problem | What to check |
+| Problem | Check |
 | --- | --- |
-| The design or task buttons do not load | Check the internet connection and browser console for blocked CDN requests. |
-| Port already in use | Stop the other local server or choose another port; update URLs and CORS to match. |
-| Tasks appear missing | Use the same browser profile, hostname, and port as before. |
-| API command reports a missing `app` | The scaffold is empty; implement `app/main.py` first. |
-| MySQL access denied | Check the service, TCP host, database user grants, and `.env` credentials. |
-| Browser reports a CORS error | Allow the frontend’s exact origin in FastAPI and restart the API. |
+| Cannot reach API | Start Uvicorn from `backend/`, check MySQL is running and port 8000 is free. |
+| Untrusted request origin or cookie failure | Use `http://localhost:5500`; match `FRONTEND_ORIGIN` exactly and restart the backend after changes. |
+| MySQL access denied / unknown database | Check `.env`, database existence, user host/grants, and port 3306. |
+| No reset email in inbox | Local mode writes `.eml` files instead of sending email. For SMTP, check configuration and the server warning log. |
+| Expired/invalid reset link | Request a new link; previously used links and links older than 30 minutes will fail. |
+| Too many attempts | Wait 15 minutes; development limits are per IP. |
+| Styles or buttons fail to load | Check CDN access and the browser console. |
+| Tasks disappear | Use the same account, browser profile, hostname, and port; browser data may have been cleared. |
 
 ## License
 
