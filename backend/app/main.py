@@ -20,7 +20,7 @@ async def lifespan(app):
 
 
 app = FastAPI(title='Taskwell Authentication API', lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=[config.FRONTEND_ORIGIN],
+app.add_middleware(CORSMiddleware, allow_origins=sorted(config.FRONTEND_ORIGINS),
                    allow_credentials=True, allow_methods=['GET', 'POST'],
                    allow_headers=['Content-Type'])
 
@@ -33,7 +33,7 @@ async def protect_requests(request: Request, call_next):
         # an untrusted browser page from using that path for a form submission.
         origin = request.headers.get('origin')
         api_origin = f'{request.url.scheme}://{request.url.netloc}'
-        if ((origin is not None and origin not in {config.FRONTEND_ORIGIN, api_origin})
+        if ((origin is not None and origin not in config.FRONTEND_ORIGINS | {api_origin})
                 or (origin is None and request.headers.get('sec-fetch-site') == 'cross-site')):
             return JSONResponse({'detail': 'Untrusted request origin.'}, status_code=403)
         if request.headers.get('content-type', '').split(';')[0].strip() != 'application/json':

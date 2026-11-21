@@ -188,3 +188,18 @@ def test_local_email_preview_preserves_copyable_link(tmp_path, monkeypatch):
     content = previews[0].read_text(encoding='utf-8')
     assert f'{config.FRONTEND_ORIGIN}/reset-password.html#token={token}' in content
     assert 'To: alex@example.com' in content
+
+
+@pytest.mark.parametrize('origin', ['http://localhost:5500', 'http://127.0.0.1:5500'])
+def test_loopback_frontends_can_preflight_and_signup(setup, origin):
+    client, _, _ = setup
+    preflight = client.options('/api/auth/signup', headers={
+        'Origin': origin, 'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type'})
+    assert preflight.status_code == 200
+    assert preflight.headers['access-control-allow-origin'] == origin
+    result = client.post('/api/auth/signup', headers={'Origin': origin}, json={
+        'name': 'QA User', 'email': 'qa@example.com',
+        'password': 'Password123', 'confirm_password': 'Password123'})
+    assert result.status_code == 201
+    assert result.headers['access-control-allow-origin'] == origin
