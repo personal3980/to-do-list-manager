@@ -40,4 +40,3 @@ def test_impossible_saved_dates_do_not_display_as_a_different_day(page, site, du
     open_tasks(page, site, [task('Invalid date', due)])
     expect(page.locator('#storage-error')).to_be_visible()
     expect(page.locator('#add-task')).to_be_disabled()
-

@@ -11,4 +11,3 @@ def test_new_task_form_does_not_keep_previous_custom_validation(page, site):
     page.locator('#task-modal').wait_for(state='hidden')
     page.locator('#add-task').click()
     assert page.locator('#task-title').evaluate('(input) => input.validationMessage') != 'Enter a task title.'
-

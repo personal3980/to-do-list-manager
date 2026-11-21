@@ -9,4 +9,3 @@ def test_corrupted_saved_data_is_not_overwritten_by_a_new_task(page, site):
     expect(page.locator('#storage-error')).to_be_visible()
     expect(page.locator('#add-task')).to_be_disabled()
     assert page.evaluate('key => localStorage.getItem(key)', KEY) == 'broken original data'
-

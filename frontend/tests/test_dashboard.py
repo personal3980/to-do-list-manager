@@ -63,4 +63,3 @@ def test_cancelled_delete_preserves_task(page, site):
     page.on('dialog', lambda dialog: dialog.dismiss())
     page.locator('.delete-task').click()
     expect(page.locator('.task-title')).to_have_text(['Keep me'])
-
