@@ -18,3 +18,5 @@ Thumbs.db
 node_modules/
 # Local password-reset email previews contain private, single-use links.
 backend/reset-emails/
+.qa-cache/
+test-results/
