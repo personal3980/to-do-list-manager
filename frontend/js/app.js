@@ -74,7 +74,15 @@ window.taskwellSession.done(function (user) { $(function () {
     let visible = tasks.filter(t => (view !== 'today' || t.due === today()) && (view !== 'upcoming' || t.due > today() && !t.completed) && (view !== 'completed' || t.completed) && (status !== 'active' || !t.completed) && (status !== 'completed' || t.completed) && `${t.title} ${t.notes}`.toLowerCase().includes(query));
     const priority = { high: 0, medium: 1, low: 2 };
     const sort = $('#sort').val();
-    visible.sort((a, b) => sort === 'due' ? (a.due || '9999').localeCompare(b.due || '9999') || b.createdAt - a.createdAt : sort === 'priority' ? priority[a.priority] - priority[b.priority] || b.createdAt - a.createdAt : b.createdAt - a.createdAt);
+    visible.sort((a, b) => {
+      let order = 0;
+      if (sort === 'due') {
+        if (!a.due) order = b.due ? 1 : 0;
+        else if (!b.due) order = -1;
+        else order = a.due.localeCompare(b.due);
+      } else if (sort === 'priority') order = priority[a.priority] - priority[b.priority];
+      return order || b.createdAt - a.createdAt;
+    });
     $('#list-count').text(`${visible.length} ${visible.length === 1 ? 'task' : 'tasks'}`);
     $('#task-list').html(visible.length ? visible.map(t => `<article class="task-row ${t.completed ? 'done' : ''}" data-id="${escape(t.id)}"><div class="task-main"><input type="checkbox" class="task-check" aria-label="${escape(`Mark ${t.title} ${t.completed ? 'active' : 'complete'}`)}" ${t.completed ? 'checked' : ''}><div class="task-copy"><div class="task-title">${escape(t.title)}</div>${t.notes ? `<div class="task-notes">${escape(t.notes)}</div>` : ''}</div></div><span class="badge-priority priority-${t.priority}">${t.priority}</span><span class="due-date ${t.due && t.due < today() && !t.completed ? 'overdue' : ''}">${escape(dateLabel(t.due))}</span><div class="task-actions"><button class="icon-btn edit-task" aria-label="${escape(`Edit ${t.title}`)}" title="Edit task">✎</button><button class="icon-btn delete-task" aria-label="${escape(`Delete ${t.title}`)}" title="Delete task">×</button></div></article>`).join('') : '<div class="empty-state"><strong>A little breathing room.</strong>No tasks here. Add a new task or try another filter.</div>');
     $('#add-task, #task-list :input').prop('disabled', storageBlocked);
