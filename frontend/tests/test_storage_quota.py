@@ -1,5 +1,5 @@
 from playwright.sync_api import expect
-from conftest import KEY, add_task, open_tasks
+from frontend.tests.support import KEY, add_task, open_tasks
 
 
 def test_storage_warning_clears_after_a_successful_save(page, site):

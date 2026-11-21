@@ -1,5 +1,5 @@
 from playwright.sync_api import expect
-from conftest import open_tasks, task
+from frontend.tests.support import open_tasks, task
 
 
 def test_undated_tasks_sort_after_the_latest_supported_date(page, site):

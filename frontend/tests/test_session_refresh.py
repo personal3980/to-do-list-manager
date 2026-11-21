@@ -1,5 +1,5 @@
 from playwright.sync_api import expect
-from conftest import open_tasks, task
+from frontend.tests.support import open_tasks, task
 
 
 def test_returning_to_tab_rechecks_revoked_session(page, site):

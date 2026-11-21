@@ -1,5 +1,5 @@
 from playwright.sync_api import expect
-from conftest import KEY, add_task, open_tasks, task
+from frontend.tests.support import KEY, add_task, open_tasks, task
 
 
 def test_two_tabs_preserve_each_others_changes(page, site):

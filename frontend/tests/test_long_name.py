@@ -1,4 +1,4 @@
-from conftest import open_tasks
+from frontend.tests.support import open_tasks
 
 
 def test_maximum_length_account_name_fits_mobile_header(page, site):

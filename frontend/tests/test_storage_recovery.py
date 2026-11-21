@@ -1,5 +1,5 @@
 from playwright.sync_api import expect
-from conftest import KEY, add_task, open_tasks, task
+from frontend.tests.support import KEY, add_task, open_tasks, task
 
 
 def test_corrupted_saved_data_is_not_overwritten_by_a_new_task(page, site):

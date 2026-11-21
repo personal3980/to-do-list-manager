@@ -1,5 +1,5 @@
 from playwright.sync_api import expect
-from conftest import KEY, add_task, open_tasks, task
+from frontend.tests.support import KEY, add_task, open_tasks, task
 
 
 def test_new_task_form_does_not_keep_previous_custom_validation(page, site):

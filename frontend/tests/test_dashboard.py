@@ -1,7 +1,7 @@
 from playwright.sync_api import expect
 import pytest
 
-from conftest import KEY, add_task, open_tasks, task
+from frontend.tests.support import KEY, add_task, open_tasks, task
 
 
 @pytest.mark.parametrize('page', ['Asia/Kolkata', 'America/Los_Angeles', 'Pacific/Kiritimati'], indirect=True)

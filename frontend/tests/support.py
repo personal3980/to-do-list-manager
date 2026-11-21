@@ -1,8 +1,6 @@
-"""Real Chromium tests with isolated storage and mocked auth/CDN transport."""
+"""Shared Chromium fixtures, with isolated storage and mocked auth transport."""
 import functools
-import json
 import threading
-from datetime import datetime, timedelta, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import urlopen
