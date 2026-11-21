@@ -7,7 +7,7 @@ window.taskwellSession.done(function (user) { $(function () {
   const uid = () => window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const escape = value => $('<span>').text(value).html().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const dateLabel = value => !value ? 'No due date' : new Date(`${value}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  let tasks = [], view = 'all', status = 'all', editingId = null;
+  let tasks = [], view = 'all', status = 'all', editingId = null, storageBlocked = false;
   const modal = new bootstrap.Modal(document.getElementById('task-modal'));
   function storageError(message) { $('#storage-error').text(message).prop('hidden', false); }
   try {
@@ -24,8 +24,12 @@ window.taskwellSession.done(function (user) { $(function () {
       ].map((t, i) => ({ ...t, id: uid(), createdAt: Date.now() - i }));
       persist();
     }
-  } catch (_) { storageError('Saved tasks could not be loaded. Your existing browser data has not been changed. Changes may overwrite it; back it up before continuing.'); }
+  } catch (_) {
+    storageBlocked = true;
+    storageError('Saved tasks could not be loaded. Editing is disabled to protect the original data. Back up or repair this browser’s saved tasks, then reload.');
+  }
   function persist() {
+    if (storageBlocked) return;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
     catch (_) { storageError('Changes are available for this session only. Browser storage is unavailable or full.'); }
   }
@@ -37,7 +41,7 @@ window.taskwellSession.done(function (user) { $(function () {
     $('#stat-active').text(tasks.length - done); $('#stat-done').text(done);
     $('#stat-progress').html(`${percentage}<span>%</span>`); $('#progress-fill').css('width', `${percentage}%`);
     $('#remaining-count').text(`${tasks.length - done} ${tasks.length - done === 1 ? 'task' : 'tasks'} left in total`);
-    $('#clear-completed').prop('disabled', !done);
+    $('#clear-completed').prop('disabled', storageBlocked || !done);
     const query = $('#search').val().trim().toLowerCase();
     let visible = tasks.filter(t => (view !== 'today' || t.due === today()) && (view !== 'upcoming' || t.due > today() && !t.completed) && (view !== 'completed' || t.completed) && (status !== 'active' || !t.completed) && (status !== 'completed' || t.completed) && `${t.title} ${t.notes}`.toLowerCase().includes(query));
     const priority = { high: 0, medium: 1, low: 2 };
@@ -45,6 +49,7 @@ window.taskwellSession.done(function (user) { $(function () {
     visible.sort((a, b) => sort === 'due' ? (a.due || '9999').localeCompare(b.due || '9999') || b.createdAt - a.createdAt : sort === 'priority' ? priority[a.priority] - priority[b.priority] || b.createdAt - a.createdAt : b.createdAt - a.createdAt);
     $('#list-count').text(`${visible.length} ${visible.length === 1 ? 'task' : 'tasks'}`);
     $('#task-list').html(visible.length ? visible.map(t => `<article class="task-row ${t.completed ? 'done' : ''}" data-id="${escape(t.id)}"><div class="task-main"><input type="checkbox" class="task-check" aria-label="${escape(`Mark ${t.title} ${t.completed ? 'active' : 'complete'}`)}" ${t.completed ? 'checked' : ''}><div class="task-copy"><div class="task-title">${escape(t.title)}</div>${t.notes ? `<div class="task-notes">${escape(t.notes)}</div>` : ''}</div></div><span class="badge-priority priority-${t.priority}">${t.priority}</span><span class="due-date ${t.due && t.due < today() && !t.completed ? 'overdue' : ''}">${escape(dateLabel(t.due))}</span><div class="task-actions"><button class="icon-btn edit-task" aria-label="${escape(`Edit ${t.title}`)}" title="Edit task">✎</button><button class="icon-btn delete-task" aria-label="${escape(`Delete ${t.title}`)}" title="Delete task">×</button></div></article>`).join('') : '<div class="empty-state"><strong>A little breathing room.</strong>No tasks here. Add a new task or try another filter.</div>');
+    $('#add-task, #task-list :input').prop('disabled', storageBlocked);
   }
   function openForm(task) {
     editingId = task ? task.id : null;
@@ -58,6 +63,7 @@ window.taskwellSession.done(function (user) { $(function () {
   $('#add-task').on('click', () => openForm());
   $('#task-form').on('submit', function (event) {
     event.preventDefault();
+    if (storageBlocked) return;
     const title = $('#task-title').val().trim();
     if (!title) { document.getElementById('task-title').setCustomValidity('Enter a task title.'); document.getElementById('task-title').reportValidity(); return; }
     const values = { title, notes: $('#task-notes').val().trim(), priority: $('#task-priority').val(), due: $('#task-due').val() };
