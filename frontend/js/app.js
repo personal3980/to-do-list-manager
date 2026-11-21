@@ -10,12 +10,15 @@ window.taskwellSession.done(function (user) { $(function () {
   let tasks = [], view = 'all', status = 'all', editingId = null, storageBlocked = false;
   const modal = new bootstrap.Modal(document.getElementById('task-modal'));
   function storageError(message) { $('#storage-error').text(message).prop('hidden', false); }
+  function parseTasks(saved) {
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed) || !parsed.every(t => t && typeof t.id === 'string' && typeof t.title === 'string' && typeof t.notes === 'string' && ['low', 'medium', 'high'].includes(t.priority) && typeof t.completed === 'boolean' && typeof t.createdAt === 'number' && typeof t.due === 'string' && (t.due === '' || /^\d{4}-\d{2}-\d{2}$/.test(t.due)))) throw new Error('Invalid saved tasks');
+    return parsed;
+  }
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== null) {
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || !parsed.every(t => t && typeof t.id === 'string' && typeof t.title === 'string' && typeof t.notes === 'string' && ['low', 'medium', 'high'].includes(t.priority) && typeof t.completed === 'boolean' && typeof t.createdAt === 'number' && typeof t.due === 'string' && (t.due === '' || /^\d{4}-\d{2}-\d{2}$/.test(t.due)))) throw new Error('Invalid saved tasks');
-      tasks = parsed;
+      tasks = parseTasks(saved);
     } else {
       tasks = [
         { title: 'Plan the week ahead', notes: 'A few clear priorities make all the difference.', priority: 'high', due: today(), completed: false },
@@ -34,6 +37,24 @@ window.taskwellSession.done(function (user) { $(function () {
     catch (_) { storageError('Changes are available for this session only. Browser storage is unavailable or full.'); }
   }
   function changed(message) { persist(); render(); $('#announcement').text(message); }
+  window.addEventListener('storage', function (event) {
+    if (event.key !== STORAGE_KEY && event.key !== null) return;
+    try {
+      tasks = parseTasks(event.newValue || '[]');
+      storageBlocked = false;
+      $('#storage-error').prop('hidden', true);
+      if (editingId && !tasks.some(t => t.id === editingId)) {
+        modal.hide();
+        editingId = null;
+        $('#announcement').text('The task being edited was deleted in another tab.');
+      }
+    } catch (_) {
+      storageBlocked = true;
+      modal.hide();
+      storageError('Saved tasks changed in another tab but could not be read. Editing is disabled to protect your data.');
+    }
+    render();
+  });
   function render() {
     const done = tasks.filter(t => t.completed).length;
     const percentage = tasks.length ? Math.round(done / tasks.length * 100) : 0;
