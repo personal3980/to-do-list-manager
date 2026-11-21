@@ -49,6 +49,7 @@ window.taskwellSession.done(function (user) { $(function () {
   function openForm(task) {
     editingId = task ? task.id : null;
     $('#task-form')[0].reset(); $('#modal-title').text(task ? 'Edit task' : 'New task');
+    document.getElementById('task-title').setCustomValidity('');
     $('#task-title').val(task?.title || ''); $('#task-notes').val(task?.notes || '');
     $('#task-priority').val(task?.priority || 'medium'); $('#task-due').val(task?.due || '');
     modal.show();
