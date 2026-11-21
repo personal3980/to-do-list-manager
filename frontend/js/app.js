@@ -40,7 +40,10 @@ window.taskwellSession.done(function (user) { $(function () {
   }
   function persist() {
     if (storageBlocked) return;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      $('#storage-error').prop('hidden', true);
+    }
     catch (_) { storageError('Changes are available for this session only. Browser storage is unavailable or full.'); }
   }
   function changed(message) { persist(); render(); $('#announcement').text(message); }
