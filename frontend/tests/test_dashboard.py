@@ -1,8 +1,10 @@
 from playwright.sync_api import expect
+import pytest
 
 from conftest import KEY, add_task, open_tasks, task
 
 
+@pytest.mark.parametrize('page', ['Asia/Kolkata', 'America/Los_Angeles', 'Pacific/Kiritimati'], indirect=True)
 def test_past_present_future_dates_filters_and_sort(page, site):
     open_tasks(page, site, [task('Past', '2026-11-20'), task('Today', '2026-11-21'),
                            task('Future', '2026-11-22'), task('Undated'),
@@ -61,3 +63,4 @@ def test_cancelled_delete_preserves_task(page, site):
     page.on('dialog', lambda dialog: dialog.dismiss())
     page.locator('.delete-task').click()
     expect(page.locator('.task-title')).to_have_text(['Keep me'])
+

@@ -56,9 +56,9 @@ def browser():
 
 
 @pytest.fixture
-def page(browser, site, assets):
+def page(browser, site, assets, request):
     context = browser.new_context(viewport={'width': 1366, 'height': 900},
-                                  timezone_id='Asia/Kolkata', locale='en-US', reduced_motion='reduce')
+                                  timezone_id=getattr(request, 'param', 'Asia/Kolkata'), locale='en-US', reduced_motion='reduce')
     def route(request):
         url = request.request.url
         if url in assets:
@@ -73,7 +73,7 @@ def page(browser, site, assets):
             request.continue_()
     context.route('**/*', route)
     page = context.new_page()
-    page.clock.install(time=datetime(2026, 11, 21, 12, tzinfo=timezone(timedelta(hours=5, minutes=30))))
+    page.clock.install(time=page.evaluate('new Date(2026, 10, 21, 12).getTime() / 1000'))
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.qa_errors = errors

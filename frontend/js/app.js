@@ -10,9 +10,16 @@ window.taskwellSession.done(function (user) { $(function () {
   let tasks = [], view = 'all', status = 'all', editingId = null, storageBlocked = false;
   const modal = new bootstrap.Modal(document.getElementById('task-modal'));
   function storageError(message) { $('#storage-error').text(message).prop('hidden', false); }
+  function validDueDate(value) {
+    if (value === '') return true;
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000')) return false;
+    const date = new Date(`${value}T12:00:00`);
+    return date.getFullYear() === Number(value.slice(0, 4)) &&
+      date.getMonth() + 1 === Number(value.slice(5, 7)) && date.getDate() === Number(value.slice(8, 10));
+  }
   function parseTasks(saved) {
     const parsed = JSON.parse(saved);
-    if (!Array.isArray(parsed) || !parsed.every(t => t && typeof t.id === 'string' && typeof t.title === 'string' && typeof t.notes === 'string' && ['low', 'medium', 'high'].includes(t.priority) && typeof t.completed === 'boolean' && typeof t.createdAt === 'number' && typeof t.due === 'string' && (t.due === '' || /^\d{4}-\d{2}-\d{2}$/.test(t.due)))) throw new Error('Invalid saved tasks');
+    if (!Array.isArray(parsed) || !parsed.every(t => t && typeof t.id === 'string' && typeof t.title === 'string' && typeof t.notes === 'string' && ['low', 'medium', 'high'].includes(t.priority) && typeof t.completed === 'boolean' && typeof t.createdAt === 'number' && validDueDate(t.due))) throw new Error('Invalid saved tasks');
     return parsed;
   }
   try {
