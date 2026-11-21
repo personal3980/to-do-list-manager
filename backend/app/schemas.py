@@ -22,7 +22,7 @@ class NewPassword(BaseModel):
     @field_validator('password')
     @classmethod
     def password_strength(cls, value):
-        if not any('a' <= c.lower() <= 'z' for c in value) or not any('0' <= c <= '9' for c in value):
+        if not any('a' <= c <= 'z' or 'A' <= c <= 'Z' for c in value) or not any('0' <= c <= '9' for c in value):
             raise ValueError('Use at least one letter and one number.')
         return value
 
