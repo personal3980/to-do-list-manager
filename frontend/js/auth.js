@@ -6,14 +6,24 @@ $(function () {
   function message(text, error = false) {
     $('#auth-message').text(text).toggleClass('error', error).prop('hidden', false);
   }
-  if (mode === 'reset-password') {
+  function readResetLink() {
     resetToken = new URLSearchParams(location.hash.slice(1)).get('token') || '';
     // Remove the token from the address bar and history as soon as it is read.
     history.replaceState(null, '', location.pathname);
+    $('#auth-form :input').prop('disabled', false);
+    $('#auth-message').prop('hidden', true);
+    form.reset();
+    $('#password, #confirm_password').each(function () { this.setCustomValidity(''); });
     if (!/^[A-Za-z0-9_-]{43}$/.test(resetToken)) {
       message('This reset link is missing or invalid. Request a new link below.', true);
       $('#auth-form :input').prop('disabled', true);
     }
+  }
+  if (mode === 'reset-password') {
+    readResetLink();
+    // Opening a new email link in the same tab can change only the fragment,
+    // which does not reload the document or rerun its ready handler.
+    window.addEventListener('hashchange', readResetLink);
   }
   if (mode === 'login' && new URLSearchParams(location.search).has('registered')) {
     message('Account created. You can now log in.');
