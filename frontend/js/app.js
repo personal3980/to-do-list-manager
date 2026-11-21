@@ -78,6 +78,18 @@ window.taskwellSession.done(function (user) { $(function () {
   });
   $('.filter-tabs button').on('click', function () { status = $(this).attr('data-status'); $('.filter-tabs button').removeClass('active'); $(this).addClass('active'); render(); });
   $('#search').on('input', render); $('#sort').on('change', render);
-  $('#header-date').text(new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }));
+  let displayedDay = '';
+  function refreshDay() {
+    const day = today();
+    if (day === displayedDay) return;
+    displayedDay = day;
+    $('#header-date').text(new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }));
+    render();
+  }
+  // Refresh on return from a sleeping/background tab as well as across midnight.
+  setInterval(refreshDay, 60000);
+  window.addEventListener('focus', refreshDay);
+  document.addEventListener('visibilitychange', refreshDay);
+  refreshDay();
   render();
 }); });
