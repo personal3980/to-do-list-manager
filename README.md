@@ -22,7 +22,7 @@ A responsive task dashboard with a simple FastAPI/MySQL authentication system. T
 - FastAPI: **http://localhost:8000** (Uvicorn default).
 - MySQL: **127.0.0.1:3306** (default database port).
 
-Use `localhost` for both browser URLs. Mixing `localhost` and `127.0.0.1` can break cookies and origin checks. The database host can still be `127.0.0.1`.
+Use the same hostname for frontend and API cookies. The frontend automatically uses its own hostname for port 8000. When `FRONTEND_ORIGIN` uses `localhost` or `127.0.0.1`, the backend accepts both loopback aliases on that configured port. Other origins stay restricted. Browser task storage and cookies remain separate for each hostname.
 
 ## Setup
 
@@ -113,7 +113,9 @@ Serve **only the frontend folder**, never the repository root or backend folder:
 5. To recover access, choose **Forgot password?**, enter your email, and follow the reset link.
 6. Enter and confirm a new password, then log in again. Previous sessions and other reset links stop working.
 
-Task lists are scoped to the user's database ID in localStorage, remain after logout, and do not synchronize between browsers/devices. Old anonymous demo tasks are not automatically imported. A dashboard already open in another tab is not immediately hidden on logout/reset; its server-side session is nevertheless revoked. Reloading performs a fresh session check.
+Task lists are scoped to the user's database ID in localStorage, remain after logout, and do not synchronize between browsers/devices. Old anonymous demo tasks are not automatically imported. The dashboard checks its session on focus, visibility changes, browser-history restoration, and every minute while visible. Revoked sessions return to login; a different logged-in account reloads the dashboard with that account’s data.
+
+Tasks refresh their date views across local midnight. Due dates support calendar dates from `0001-01-01` to `9999-12-31`, including past dates; incomplete past tasks are marked overdue. Undated tasks sort last. Changes synchronize between tabs for the same user and origin; simultaneous edits to the same task still use the last saved value. If stored task data cannot be read, editing is disabled to avoid overwriting it.
 
 ## Password reset delivery
 
@@ -121,7 +123,7 @@ Task lists are scoped to the user's database ID in localStorage, remain after lo
 
 `RESET_DELIVERY=local` is the default when the setting is absent. For a registered email, the backend saves a private `.eml` email preview under `backend/reset-emails/`. Open the newest file in an email client or text editor, copy its full reset URL, and open it in your browser. This is a development mailbox on disk; **no email is sent**. Unknown emails produce the same API message and no preview file.
 
-The reset token lives in the URL fragment to keep it out of static-server request logs. The reset page removes it from the address bar after reading it. If you reload that page, reopen the original email link or request another one. Reset links are not returned in API responses. The preview folder is ignored by Git; delete old previews when no longer needed.
+The reset token lives in the URL fragment to keep it out of static-server request logs. The reset page removes it from the address bar after reading it. If you reload that page, reopen the original email link or request another one. Opening a new reset link in the same tab also works. Reset links are not returned in API responses. The preview folder is ignored by Git; delete old previews when no longer needed.
 
 ### Real email with SMTP
 
@@ -213,21 +215,38 @@ to-do-list-manager/
 
 ## Tests
 
-From `backend/`, using the virtual environment:
+Install development dependencies and Chromium once, from the project root:
 
-```bash
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
+```powershell
+.\backend\.venv\Scripts\python.exe -m pip install -r backend/requirements-dev.txt
+.\backend\.venv\Scripts\python.exe -m playwright install chromium
+.\backend\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Tests use an isolated in-memory SQLite database and capture email delivery; they do not read/write real users, start production MySQL startup hooks, or send email. They cover validation without the frontend, password hashing, login/logout, expired sessions and reset links, single-use reset, session revocation, generic recovery messages, delivery failure, origin checks, size limits, and throttling. MySQL-specific locking should also be checked when modifying reset transactions.
+On macOS/Linux, use `backend/.venv/bin/python` instead. Pytest works from the root or backend folder. The default suite runs API and browser tests, skipping the real-MySQL check unless explicitly enabled. For API tests alone, use `python -m pytest backend/tests -q` from the root with the virtual environment active.
+
+API tests use isolated SQLite and captured email delivery. Browser tests launch Chromium with isolated storage, a temporary frontend server, controlled dates, and mocked authentication transport. They download the same jQuery/Bootstrap versions used by the app into ignored `.qa-cache/` once and reuse them; internet access is needed on the first run. Font requests are suppressed for repeatable browser tests. If a corporate TLS proxy prevents Python from downloading the assets, populate `.qa-cache/jquery.js`, `bootstrap.css`, and `bootstrap.js` from the CDN URLs in `frontend/tests/support.py` using your trusted system downloader.
+
+Coverage includes past/present/future dates in three time zones, midnight refresh, leap days, year boundaries, invalid dates, task CRUD, search/filter/sort, persistence, browser-tab updates, storage failures, text escaping, authentication forms, session revocation, reset links, and responsive layouts at 320/375/768/1366 pixels. Screenshots are generated in ignored `test-results/`.
+
+To include an actual browser/API/MySQL check using your existing `.env`, in PowerShell:
+
+```powershell
+$env:TASKWELL_TEST_MYSQL = '1'
+.\backend\.venv\Scripts\python.exe -m pytest -q
+Remove-Item Env:TASKWELL_TEST_MYSQL
+```
+
+This creates one uniquely named QA account and removes it and its reset-email previews afterward. It checks real signup/login/reset/logout, unique-email and cascade constraints, session invalidation, reset replay, and concurrent reset attempts using MySQL row locks. It starts a separate API on a temporary port, forces local email previews, and leaves your `.env` and existing users unchanged. The configured database and authentication tables must already exist (start the normal API once first).
+
+See [QA.md](QA.md) for the review findings, fixes, evidence, and limitations.
 
 ## Troubleshooting
 
 | Problem | Check |
 | --- | --- |
 | Cannot reach API | Start Uvicorn from `backend/`, check MySQL is running and port 8000 is free. |
-| Untrusted request origin or cookie failure | Use `http://localhost:5500`; match `FRONTEND_ORIGIN` exactly and restart the backend after changes. |
+| Untrusted request origin or cookie failure | Use localhost or 127.0.0.1 consistently; match the frontend port in `FRONTEND_ORIGIN` and restart after configuration changes. |
 | MySQL access denied / unknown database | Check `.env`, database existence, user host/grants, and port 3306. |
 | No reset email in inbox | Local mode writes `.eml` files instead of sending email. For SMTP, check configuration and the server warning log. |
 | Expired/invalid reset link | Request a new link; previously used links and links older than 30 minutes will fail. |
