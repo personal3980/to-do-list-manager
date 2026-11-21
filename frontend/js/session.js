@@ -5,6 +5,30 @@ window.taskwellSession.done(function (user) {
   $(function () {
     $('.account-name').text(user.name);
     document.documentElement.classList.remove('auth-checking');
+    let checking = false;
+    function recheckSession() {
+      if (checking || document.visibilityState === 'hidden') return;
+      checking = true;
+      $.ajax({ url: `${window.TASKWELL_API}/me`, xhrFields: { withCredentials: true } })
+        .done(function (current) {
+          if (current.id !== user.id) {
+            document.documentElement.classList.add('auth-checking');
+            location.replace('index.html');
+          }
+        }).fail(function (xhr) {
+          if (xhr.status === 401) {
+            document.documentElement.classList.add('auth-checking');
+            location.replace('login.html');
+          } else {
+            $('#account-error').text('Session check failed. Check your connection and reload.');
+          }
+        }).always(function () { checking = false; });
+    }
+    // Check active tabs and pages restored from browser history, too.
+    setInterval(recheckSession, 60000);
+    window.addEventListener('focus', recheckSession);
+    window.addEventListener('pageshow', event => { if (event.persisted) recheckSession(); });
+    document.addEventListener('visibilitychange', recheckSession);
     $('#logout').on('click', function () {
       $(this).prop('disabled', true);
       $.ajax({ url: `${window.TASKWELL_API}/logout`, method: 'POST', contentType: 'application/json',
